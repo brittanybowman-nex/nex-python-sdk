@@ -1,0 +1,169 @@
+Think of webhooks as NexHealth calling you when something changes, instead of you repeatedly asking NexHealth, “anything new yet?”
+
+That’s the core reason to use them.
+
+For the kind of client library you’re building, they’re especially useful in two situations: change tracking and asynchronous write confirmation.
+
+NexHealth explicitly recommends webhooks as the better default when you want changes as they happen and want to avoid constant polling. Polling with updated_since is still valid when you can’t receive inbound HTTP requests. NexHealth Synchronizer
+
+Here’s the flow:
+Your app
+   |
+   | POST /webhook_endpoints
+   v
+NexHealth stores:
+https://yourapp.com/nexhealth/webhooks
+   |
+   | You subscribe to events
+   v
+appointment_updated
+patient_updated
+payment_created
+document_insertion
+etc.
+   |
+   | Something happens in the EHR
+   v
+NexHealth POSTs JSON to YOUR URL
+
+So instead of this:
+while True:    requests.get("/appointments")    requests.get("/patients")    requests.get("/payments")
+
+
+you let NexHealth push changes to you.
+
+A really good example is appointment creation. When you do:
+POST /appointments
+
+NexHealth can accept the API request before the appointment has actually been written into Dentrix, Eaglesoft, Open Dental, etc. The appointment_insertion webhook tells you later whether that EHR write ultimately completed or failed. NexHealth specifically recommends subscribing to that write webhook when booking appointments. NexHealth Synchronizer
+
+So conceptually:
+POST /appointments
+       |
+       v
+NexHealth accepts request
+       |
+       v
+NexHealth tries to write to EHR
+       |
+       +------ success
+       |          |
+       |          v
+       | appointment_insertion.complete
+       |
+       +------ failure
+                  |
+                  v
+          appointment_insertion.failed
+
+That’s much better than blindly assuming a POST /appointments response means “the appointment definitely exists in Eaglesoft now.”
+
+Other useful subscriptions include things like appointment_created, appointment_updated, patient_created, patient_updated, payment_created, claim_updated, procedure_updated, form_request_completed, and document_insertion. NexHealth currently exposes dozens of event types across many resources. NexHealth Synchronizer
+
+The setup is basically:
+1. Create webhook endpoint
+2. Get webhook_endpoint_id + secret_key
+3. Create subscriptions on that endpoint
+4. NexHealth POSTs events to your HTTPS URL
+5. Verify every webhook signature
+6. Process event
+7. Return HTTP 2xx
+
+You first register a public HTTPS URL:
+POST /webhook_endpoints
+
+with something like:
+{
+    "target_url": "https://yourapp.com/nexhealth/webhooks"
+}
+
+NexHealth returns a webhook endpoint ID and a secret_key. Because webhook payloads may contain PHI, production endpoints must use HTTPS. NexHealth Synchronizer
+
+Then you create subscriptions underneath it:
+POST /webhook_endpoints/{id}/webhook_subscriptions
+
+For example:
+{
+    "resource_type": "Appointment",
+    "event": "appointment_updated"
+}
+
+Subscriptions are scoped to the institution using subdomain. NexHealth Synchronizer
+
+Your Python server would then have an incoming route. This is different from all the scripts we’ve been writing—you aren’t calling NexHealth here. NexHealth calls you.
+
+For example, using FastAPI:
+from fastapi import FastAPI, Requestapp = FastAPI()@app.post("/nexhealth/webhooks")async def nexhealth_webhook(request: Request):    payload = await request.json()    print(payload)    return {        "received": True    }
+
+
+If NexHealth detects an appointment update, it might POST something conceptually like:
+{
+    "resource_type": "appointment",
+    "event_name": "appointment_updated",
+    "event_time": "2026-10-19T15:42:00Z",
+    "data": {
+        "appointment": {
+            "id": 123456
+        }
+    }
+}
+
+But you absolutely want to verify that the request genuinely came from NexHealth before trusting it.
+
+NexHealth signs webhook events with HMAC SHA-256. The request contains:
+timestamp
+signature
+
+headers. You combine the timestamp with a base64 encoding of the request body and use the webhook endpoint's secret_key to reproduce the HMAC signature. If yours matches the signature header, the message is authentic. NexHealth Synchronizer
+
+That means your actual handler eventually looks more like:
+Incoming POST
+    |
+    v
+Verify NexHealth signature
+    |
+    +--- invalid ---> reject
+    |
+    v
+Parse event
+    |
+    v
+Handle event
+    |
+    v
+Return HTTP 200
+
+And you want to return a 2xx quickly. If NexHealth doesn't get one, it retries delivery. Their current retry schedule continues for up to 48 hours; if failures continue, NexHealth disables the endpoint. NexHealth Synchronizer
+
+For your client library specifically, I’d probably eventually expose something like:
+client.webhooks.create_endpoint(    target_url="https://api.myapp.com/nexhealth/webhooks")
+
+
+then:
+client.webhooks.subscribe(    endpoint_id=123,    resource_type="Appointment",    event="appointment_updated")
+
+
+and potentially even:
+@nexhealth_webhook("appointment_updated")def appointment_updated(event):    print(event.appointment.id)
+
+
+That last piece would be your abstraction, not a NexHealth API feature, but it would make your library much nicer to use.
+
+The most important mental distinction is:
+GET /webhook_endpoints
+
+doesn't retrieve webhook events.
+
+It tells you which URLs NexHealth is configured to send webhook events to.
+
+Then:
+/webhook_endpoints/{id}/webhook_subscriptions
+
+controls which events get sent there.
+
+And finally:
+https://your-server.com/nexhealth/webhooks
+
+is where you actually receive those events.
+
+For what you're building, webhooks are a pretty major piece of the puzzle. Without them, your SDK is essentially request/response only. With them, it can support real-time EHR synchronization and reliably track whether asynchronous writes actually landed.
