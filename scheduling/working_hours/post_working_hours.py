@@ -1,3 +1,5 @@
+# https://docs.nexhealth.com/reference/postworkinghours
+
 import requests
 import os
 from dotenv import load_dotenv, find_dotenv
@@ -10,9 +12,7 @@ console = Console()
 api_key = os.getenv("APIKEY")
 subdomain = os.getenv("SUBDOMAIN")
 location_id = os.getenv("LOCATIONID")
-patient_id = os.getenv("PATIENTID")
 provider_id = os.getenv("PROVIDERID")
-appointment_type_id = os.getenv("APPOINTMENTTYPEID")
 operatory_id = os.getenv("OPERATORYID")
 
 if api_key is None:
@@ -24,40 +24,36 @@ if subdomain is None:
 if location_id is None:
     raise ValueError("LOCATIONID is missing from .env")
 
-if patient_id is None:
-    raise ValueError("PATIENTID is missing from .env")
-
 if provider_id is None:
     raise ValueError("PROVIDERID is missing from .env")
 
 if operatory_id is None:
     raise ValueError("OPERATORYID is missing from .env")
 
-if appointment_type_id is None:
-    raise ValueError("APPOINTMENTTYPEID is missing from .env")
-
 location_id = int(location_id)
-patient_id = int(patient_id)
 provider_id = int(provider_id)
-appointment_type_id = int(appointment_type_id)
 operatory_id = int(operatory_id)
 
-url = "https://nexhealth.info/appointments"
+url = "https://nexhealth.info/working_hours"
 
 params = {
     "subdomain": subdomain,
-    "location_id": location_id,
-    "notify_patient": False
+    "location_id": location_id
 }
 
 payload = {
-    "appt": {
-        "patient_id": patient_id,
+    "working_hour": {
+        "active": True,
         "provider_id": provider_id,
-        "start_time": "2026-11-05T16:00:00-07:00",
-        "end_time": "2026-11-05T17:00:00-07:00",
-        "appointment_type_id": appointment_type_id,
         "operatory_id": operatory_id,
+        "begin_time": "09:00",
+        "end_time": "17:00",
+        "days": [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday"
+        ]
     }
 }
 

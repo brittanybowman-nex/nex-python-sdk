@@ -1,3 +1,5 @@
+# https://docs.nexhealth.com/reference/getappointments
+
 import requests
 import os
 from dotenv import load_dotenv, find_dotenv
@@ -9,8 +11,7 @@ console = Console()
 
 api_key = os.getenv("APIKEY")
 subdomain = os.getenv("SUBDOMAIN")
-appointment_id = os.getenv("APPOINTMENTID")
-descriptor_type = os.getenv("DESCRIPTORTYPE")
+location_id = os.getenv("LOCATIONID")
 
 if api_key is None:
     raise ValueError("APIKEY is missing from .env")
@@ -18,19 +19,19 @@ if api_key is None:
 if subdomain is None:
     raise ValueError("SUBDOMAIN is missing from .env")
 
-if appointment_id is None:
-    raise ValueError("APPOINTMENTID is missing from .env")
+if location_id is None:
+    raise ValueError("LOCATIONID is missing from .env")
 
-appointment_id = int(appointment_id)
+location_id = (location_id)
 
-url = f"https://nexhealth.info/appointments/{appointment_id}/appointment_descriptors"
+url = "https://nexhealth.info/appointments"
 
 params = {
-    "subdomain": subdomain
+    "subdomain": subdomain,
+    "location_id": location_id,
+    "start": "2026-10-12T20:40:00Z",
+    "end": "2026-10-12T20:59:00Z"
 }
-
-if descriptor_type is not None:
-    params["descriptor_type"] = descriptor_type
 
 headers = {
     "accept": "application/json",

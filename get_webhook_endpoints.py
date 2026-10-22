@@ -18,8 +18,6 @@
 # Example:
 # GET https://nexhealth.info/webhook_endpoints?active=true
 # ---------------------------------------------------------
-
-
 import requests
 import os
 from dotenv import load_dotenv, find_dotenv

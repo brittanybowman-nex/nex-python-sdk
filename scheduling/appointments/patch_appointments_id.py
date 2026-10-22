@@ -1,3 +1,5 @@
+# https://docs.nexhealth.com/reference/patchappointmentsid
+
 import requests
 import os
 from dotenv import load_dotenv, find_dotenv
@@ -9,7 +11,7 @@ console = Console()
 
 api_key = os.getenv("APIKEY")
 subdomain = os.getenv("SUBDOMAIN")
-working_hour_id = os.getenv("WORKINGHOURID")
+appointment_id = os.getenv("APPOINTMENTID")
 
 if api_key is None:
     raise ValueError("APIKEY is missing from .env")
@@ -17,27 +19,35 @@ if api_key is None:
 if subdomain is None:
     raise ValueError("SUBDOMAIN is missing from .env")
 
-if working_hour_id is None:
-    raise ValueError("WORKINGHOURID is missing from .env")
+if appointment_id is None:
+    raise ValueError("APPOINTMENTID is missing from .env")
 
-working_hour_id = int(working_hour_id)
+appointment_id = int(appointment_id)
 
-url = f"https://nexhealth.info/working_hours/{working_hour_id}"
+url = f"https://nexhealth.info/appointments/{appointment_id}"
 
 params = {
     "subdomain": subdomain
 }
 
+payload = {
+    "appt": {
+        "confirmed": True
+    }
+}
+
 headers = {
     "accept": "application/json",
+    "content-type": "application/json",
     "Nex-Api-Version": "v3.0.0",
     "Authorization": api_key
 }
 
-response = requests.delete(
+response = requests.patch(
     url,
     headers=headers,
-    params=params
+    params=params,
+    json=payload
 )
 
 if response.ok:
@@ -56,13 +66,7 @@ console.print(
     style="bold cyan"
 )
 
-if response.status_code == 204:
-    console.print(
-        "Working hour deleted successfully.",
-        style="bold green"
-    )
-else:
-    try:
-        console.print_json(data=response.json())
-    except ValueError:
-        console.print(response.text, style="yellow")
+try:
+    console.print_json(data=response.json())
+except ValueError:
+    console.print(response.text, style="yellow")

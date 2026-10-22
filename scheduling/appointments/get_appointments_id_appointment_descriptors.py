@@ -1,3 +1,5 @@
+#  https://docs.nexhealth.com/reference/getappointmentsidappointmentdescriptors
+
 import requests
 import os
 from dotenv import load_dotenv, find_dotenv
@@ -10,6 +12,7 @@ console = Console()
 api_key = os.getenv("APIKEY")
 subdomain = os.getenv("SUBDOMAIN")
 appointment_id = os.getenv("APPOINTMENTID")
+descriptor_type = os.getenv("DESCRIPTORTYPE")
 
 if api_key is None:
     raise ValueError("APIKEY is missing from .env")
@@ -22,30 +25,25 @@ if appointment_id is None:
 
 appointment_id = int(appointment_id)
 
-url = f"https://nexhealth.info/appointments/{appointment_id}"
+url = f"https://nexhealth.info/appointments/{appointment_id}/appointment_descriptors"
 
 params = {
     "subdomain": subdomain
 }
 
-payload = {
-    "appt": {
-        "confirmed": True
-    }
-}
+if descriptor_type is not None:
+    params["descriptor_type"] = descriptor_type
 
 headers = {
     "accept": "application/json",
-    "content-type": "application/json",
     "Nex-Api-Version": "v3.0.0",
     "Authorization": api_key
 }
 
-response = requests.patch(
+response = requests.get(
     url,
     headers=headers,
-    params=params,
-    json=payload
+    params=params
 )
 
 if response.ok:
