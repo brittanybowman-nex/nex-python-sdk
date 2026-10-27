@@ -1,31 +1,41 @@
-# NexHealth Python API Test Suite
+# NexHealth Python SDK — Developer Reference
 
 > **Unofficial developer project. Not an official NexHealth SDK.**
 
-A Python-based test suite and API exploration project for the NexHealth Synchronizer API. The repository is organized to mirror the NexHealth API Reference as closely as practical so individual endpoint scripts are easy to find, test, compare, and eventually refactor into a reusable Python client library.
+This repository provides Python reference implementations for the NexHealth Synchronizer API. Its structure follows the NexHealth API Reference so developers can locate endpoint examples, compare request patterns, troubleshoot integrations, and use the examples as building blocks for a reusable Python client.
 
 This project currently targets:
 
 - **Base URL:** `https://nexhealth.info`
+
 - **API version:** `v3.0.0`
+
 - **Python HTTP client:** `requests`
+
 - **Environment management:** `python-dotenv`
+
 - **Terminal output:** `rich`
 
 Official NexHealth API reference: https://docs.nexhealth.com/reference/introduction
 
 ---
 
-# Repository goals
+# Repository scope
 
-This repository is intended to provide:
+This repository provides:
 
 - Small, readable Python examples for individual NexHealth endpoints.
+
 - Consistent use of `.env` variables instead of hard-coded credentials.
+
 - Consistent separation of path params, query params, headers, and JSON bodies.
+
 - Rich-formatted terminal output for easier API troubleshooting.
-- A test harness for learning how NexHealth resources relate to each other.
-- A foundation for a future reusable NexHealth Python client/SDK.
+
+- Executable endpoint examples that demonstrate how NexHealth resources relate to one another.
+
+- A foundation for a reusable NexHealth Python client/SDK.
+
 - Notes about endpoint quirks, EHR-specific behavior, async writes, pagination, and common errors.
 
 This repository is **not** intended to replace NexHealth's official documentation. NexHealth's API and behavior can change; always verify production behavior against the current API reference.
@@ -34,46 +44,72 @@ This repository is **not** intended to replace NexHealth's official documentatio
 
 # Security and PHI
 
-This project interacts with healthcare data. Treat credentials, patient information, logs, screenshots, and API responses accordingly.
+This project interacts with healthcare data. Treat credentials, patient information, logs, screen captures, and API responses accordingly.
 
 **Never commit:**
 
 - `.env`
+
 - API keys
+
 - bearer tokens
+
 - webhook secret keys
+
 - real patient names
+
 - DOBs
+
 - phone numbers
+
 - email addresses
+
 - insurance/member IDs
+
 - clinical notes
+
 - treatment data
+
 - production API response dumps containing PHI
 
-Use sandbox data whenever possible.
+Use NexHealth sandbox data whenever possible.
 
 Recommended `.gitignore`:
 
 ```gitignore
+
 .env
+
 .venv/
+
 venv/
+
 __pycache__/
+
 *.pyc
+
 *.pyo
+
 *.pyd
+
 .DS_Store
+
 .vscode/
+
 .pytest_cache/
+
 .mypy_cache/
+
 .ruff_cache/
+
 ```
 
-Before pushing changes, verify that `.env` is ignored:
+Before committing or pushing changes, verify that `.env` is ignored:
 
 ```bash
+
 git check-ignore .env
+
 ```
 
 ---
@@ -83,20 +119,27 @@ git check-ignore .env
 Create and activate a virtual environment:
 
 ```bash
+
 python -m venv .venv
+
 source .venv/bin/activate
+
 ```
 
 Install dependencies:
 
 ```bash
+
 python -m pip install requests python-dotenv rich
+
 ```
 
 Or, if this repository contains `requirements.txt`:
 
 ```bash
+
 python -m pip install -r requirements.txt
+
 ```
 
 ---
@@ -108,51 +151,83 @@ Create a local `.env` file. Do not commit it.
 Example:
 
 ```env
+
 APIKEY=""
+
 SUBDOMAIN=""
+
 LOCATIONID=""
+
 INSTITUTIONID=""
+
 PATIENTID=""
+
 PROVIDERID=""
+
 APPOINTMENTID=""
+
 APPOINTMENTTYPEID=""
+
 OPERATORYID=""
+
 PROCEDUREID=""
+
 WORKINGHOURID=""
 
 INSURANCEPLANID=""
+
 INSURANCECOVERAGEID=""
+
 ADJUSTMENTID=""
+
 ADJUSTMENTTYPEID=""
+
 FEESCHEDULEID=""
+
 PAYMENTPLANID=""
+
 PAYMENTTYPEID=""
+
 PAYMENTID=""
+
 GUARANTORID=""
+
 GUARANTORBALANCEID=""
+
 INSURANCEBALANCEID=""
+
 CHARGEID=""
+
 CLAIMID=""
 
 DOCUMENTTYPEID=""
+
 FILEPATH=""
 
 WEBHOOKURL=""
+
 WEBHOOKENDPOINTID=""
+
 WEBHOOKSUBSCRIPTIONID=""
+
 WEBHOOKRESOURCETYPE=""
+
 WEBHOOKEVENT=""
+
 ```
 
 `os.getenv()` returns strings. Convert numeric identifiers before passing them where an integer is expected:
 
 ```python
+
 location_id = os.getenv("LOCATIONID")
 
 if location_id is None:
-    raise ValueError("LOCATIONID is missing from .env")
+
+raise ValueError("LOCATIONID is missing from .env")
 
 location_id = int(location_id)
+
 ```
 
 This also keeps Pylance from complaining about `str | None`.
@@ -164,38 +239,57 @@ This also keeps Pylance from complaining about `str | None`.
 Endpoint scripts generally follow this structure:
 
 ```python
+
 import requests
+
 import os
+
 from dotenv import load_dotenv
+
 from rich.console import Console
 
 load_dotenv()
+
 console = Console()
 
 api_key = os.getenv("APIKEY")
 
 if api_key is None:
-    raise ValueError("APIKEY is missing from .env")
+
+raise ValueError("APIKEY is missing from .env")
+
 ```
 
 Query parameters are passed with `params={}`:
 
 ```python
+
 params: dict[str, str | int | bool] = {
+
     "subdomain": subdomain,
+
     "location_id": location_id
+
 }
+
 ```
 
 JSON request bodies are passed separately:
 
 ```python
+
 response = requests.post(
+
     url,
-    headers=headers,
-    params=params,
-    json=payload
+
+headers=headers,
+
+params=params,
+
+json=payload
+
 )
+
 ```
 
 The API decides whether a value belongs in the URL, query string, path, or request body. A documented query parameter cannot generally be moved into the JSON payload.
@@ -205,20 +299,31 @@ The API decides whether a value belongs in the URL, query string, path, or reque
 For one value:
 
 ```python
+
 params = {
+
     "location_ids[]": location_id
+
 }
+
 ```
 
 For repeated values, use tuples:
 
 ```python
+
 params = [
+
     ("subdomain", subdomain),
+
     ("include[]", "patient"),
+
     ("include[]", "provider"),
+
     ("include[]", "charges")
+
 ]
+
 ```
 
 ### Rich output
@@ -226,26 +331,43 @@ params = [
 Success statuses print green, failures red, and URLs cyan:
 
 ```python
+
 if response.ok:
+
     console.print(
+
         f"Status Code: {response.status_code}",
-        style="bold green"
+
+style="bold green"
+
     )
+
 else:
+
     console.print(
+
         f"Status Code: {response.status_code}",
-        style="bold red"
+
+style="bold red"
+
     )
 
 console.print(
+
     f"Request URL: {response.url}",
-    style="bold cyan"
+
+style="bold cyan"
+
 )
 
 try:
+
     console.print_json(data=response.json())
+
 except ValueError:
+
     console.print(response.text, style="yellow")
+
 ```
 
 ### DELETE endpoints
@@ -253,13 +375,21 @@ except ValueError:
 Many successful DELETE requests return `204 No Content`. Do not assume a JSON body exists:
 
 ```python
+
 if response.status_code == 204:
+
     console.print("Deleted successfully.", style="bold green")
+
 else:
-    try:
+
+try:
+
         console.print_json(data=response.json())
-    except ValueError:
+
+except ValueError:
+
         console.print(response.text, style="yellow")
+
 ```
 
 ### File uploads
@@ -269,7 +399,9 @@ Patient document uploads use `multipart/form-data`.
 Use:
 
 ```python
+
 requests.post(..., data=data, files=files)
+
 ```
 
 Do **not** manually set `content-type` for multipart uploads. `requests` generates the multipart boundary.
@@ -285,7 +417,9 @@ NexHealth provides a single API layer for interacting with multiple health recor
 All requests use:
 
 ```text
+
 https://nexhealth.info
+
 ```
 
 This repository targets the stable `v3.0.0` API.
@@ -301,51 +435,73 @@ https://docs.nexhealth.com/reference/introduction
 ### Implemented call
 
 ```text
+
 basics/
+
 └── authentication/
+
     └── post_authenticates.py
+
 ```
 
 The documented authentication flow is:
 
 ```text
+
 API key
+
    ↓
+
 POST /authenticates
+
    ↓
+
 JWT bearer token
+
    ↓
+
 All other API requests
+
 ```
 
 For `/authenticates`, send the raw API key:
 
 ```http
+
 Authorization: YOUR_API_KEY
+
 ```
 
 For normal API requests, the documented format is:
 
 ```http
+
 Authorization: Bearer YOUR_TOKEN
+
 ```
 
 NexHealth currently documents bearer-token lifetime as:
 
 - Sandbox: **24 hours**
+
 - Production: **1 hour**
 
 A `401 Unauthorized` generally indicates missing, expired, or invalid authentication.
 
-> **Repository note:** Some sandbox/test scripts may currently place the API credential directly in `Authorization`. Before treating this project as a production SDK, centralize authentication and have the client obtain and refresh bearer tokens automatically.
+> **Implementation note:** Some endpoint examples may place the API credential directly in `Authorization`. Production SDK usage should centralize authentication and obtain, cache, and refresh bearer tokens automatically.
 
-Suggested future client flow:
+Recommended client abstraction:
 
 ```python
+
 client = NexHealth(
-    api_key=os.getenv("APIKEY"),
-    subdomain=os.getenv("SUBDOMAIN")
+
+api_key=os.getenv("APIKEY"),
+
+subdomain=os.getenv("SUBDOMAIN")
+
 )
+
 ```
 
 The client should internally obtain, cache, and refresh the JWT.
@@ -361,7 +517,9 @@ https://docs.nexhealth.com/reference/authentication-1
 Every request should send:
 
 ```http
+
 Nex-Api-Version: v3.0.0
+
 ```
 
 `v3.0.0` and `v20240412` refer to the same API version.
@@ -381,22 +539,35 @@ Most modern v3 collection endpoints use cursor-based pagination.
 Common parameters:
 
 ```text
+
 start_cursor
+
 end_cursor
+
 per_page
+
 ```
 
 Common response structure:
 
 ```json
+
 {
+
     "page_info": {
+
         "has_previous_page": false,
+
         "has_next_page": true,
+
         "start_cursor": "AAAAA",
+
         "end_cursor": "BBBBB"
+
     }
+
 }
+
 ```
 
 To move forward, send the previous response's `end_cursor`.
@@ -406,8 +577,11 @@ To move backward, send its `start_cursor`.
 For many endpoints:
 
 ```text
+
 per_page default: 5
+
 per_page maximum: 1000
+
 ```
 
 Exceptions exist. For example, Nex Staff currently uses page-number pagination and caps `per_page` at 300.
@@ -422,17 +596,24 @@ https://docs.nexhealth.com/reference/pagination
 
 Related resources can commonly be accessed in two ways:
 
-1. Filtering by an ID such as `patient_id`, `provider_id`, or `appointment_id`.
-2. Sideloading related resources with `include[]`.
+1\. Filtering by an ID such as `patient_id`, `provider_id`, or `appointment_id`.
+
+2\. Sideloading related resources with `include[]`.
 
 Example:
 
 ```python
+
 params = [
+
     ("subdomain", subdomain),
+
     ("include[]", "patient"),
+
     ("include[]", "procedures")
+
 ]
+
 ```
 
 Do not assume every `include[]` value works on every endpoint. Follow the endpoint-specific allowed values.
@@ -448,22 +629,35 @@ https://docs.nexhealth.com/reference/resource-relationships
 Most NexHealth JSON responses use a common envelope:
 
 ```json
+
 {
+
     "code": true,
+
     "description": null,
+
     "error": [],
+
     "data": {},
+
     "count": 1
+
 }
+
 ```
 
 Important fields:
 
 - `code` — application-level success/failure.
+
 - `data` — returned resource or collection.
+
 - `description` — additional request/result context.
+
 - `error` — errors or warnings.
+
 - `count` — total matching records on collection responses.
+
 - `page_info` — cursor information where pagination applies.
 
 **Important quirk:** NexHealth documents that `code: true` may still be accompanied by content in `error`, such as a warning about an unsupported/unknown parameter. Do not ignore `error` solely because the HTTP status is `2xx`.
@@ -478,24 +672,37 @@ https://docs.nexhealth.com/reference/response-body
 
 Typical success responses:
 
-| Code | Meaning |
-|---|---|
-| `200` | Request succeeded |
-| `201` | Resource created |
-| `202` | Request accepted for asynchronous processing |
-| `204` | Request succeeded with no response body |
+\| Code | Meaning |
+
+\|---|---|
+
+\| `200` | Request succeeded |
+
+\| `201` | Resource created |
+
+\| `202` | Request accepted for asynchronous processing |
+
+\| `204` | Request succeeded with no response body |
 
 Typical failures:
 
-| Code | Meaning |
-|---|---|
-| `400` | Invalid request, parameter, or body |
-| `401` | Missing/invalid/expired authentication |
-| `403` | Authenticated but not permitted |
-| `404` | Resource not found or inaccessible |
-| `422` | Semantically invalid request on endpoints that use it |
-| `429` | Rate limit reached |
-| `500` | Server/integration error |
+\| Code | Meaning |
+
+\|---|---|
+
+\| `400` | Invalid request, parameter, or body |
+
+\| `401` | Missing/invalid/expired authentication |
+
+\| `403` | Authenticated but not permitted |
+
+\| `404` | Resource not found or inaccessible |
+
+\| `422` | Semantically invalid request on endpoints that use it |
+
+\| `429` | Rate limit reached |
+
+\| `500` | Server/integration error |
 
 Always inspect both the HTTP code and NexHealth's JSON `error` / `description` fields.
 
@@ -509,16 +716,25 @@ https://docs.nexhealth.com/reference/response-codes
 
 Useful troubleshooting order:
 
-1. Print `response.status_code`.
-2. Print `response.url`.
-3. Pretty-print `response.json()`.
-4. Read `error`.
-5. Read `description`.
-6. Confirm the documented location of each parameter.
-7. Confirm the correct API version.
-8. Confirm IDs belong to the correct institution/location.
-9. Confirm the resource is supported by the connected EHR.
-10. For async writes, confirm the eventual insertion result via webhook.
+1\. Print `response.status_code`.
+
+2\. Print `response.url`.
+
+3\. Pretty-print `response.json()`.
+
+4\. Read `error`.
+
+5\. Read `description`.
+
+6\. Confirm the documented location of each parameter.
+
+7\. Confirm the correct API version.
+
+8\. Confirm IDs belong to the correct institution/location.
+
+9\. Confirm the resource is supported by the connected EHR.
+
+10\. For async writes, confirm the eventual insertion result via webhook.
 
 A request may be syntactically valid yet fail because the connected EHR rejects the write.
 
@@ -533,9 +749,10 @@ https://docs.nexhealth.com/reference/errors
 NexHealth currently documents default API-key limits of:
 
 - Patients and appointments endpoints: **1,000 requests/minute**
+
 - Other endpoints: **2,000 requests/minute**
 
-`429` means you are sending requests too quickly.
+`429` indicates that the client has exceeded the applicable request rate.
 
 Production clients should implement retry/backoff rather than immediately repeating the same request.
 
@@ -552,9 +769,13 @@ https://docs.nexhealth.com/reference/rate-limiting
 ### Files
 
 ```text
+
 institutions/
+
 ├── get_institutions.py
+
 └── get_institutions_id.py
+
 ```
 
 An institution is the top-level logical grouping for practice data.
@@ -564,9 +785,13 @@ The `subdomain` identifies the institution and is one of the most common NexHeal
 Example:
 
 ```python
+
 params = {
+
     "subdomain": subdomain
+
 }
+
 ```
 
 Trying to access an institution outside the caller's permissions generally returns `403`.
@@ -574,13 +799,17 @@ Trying to access an institution outside the caller's permissions generally retur
 Typical success:
 
 ```text
+
 GET → 200
+
 ```
 
 Common failures:
 
 ```text
+
 400 / 401 / 403 / 404 / 500
+
 ```
 
 ---
@@ -590,10 +819,15 @@ Common failures:
 ### Files
 
 ```text
+
 locations/
+
 ├── get_locations.py
+
 ├── get_locations_id.py
+
 └── get_locations_id_appointment_descriptors.py
+
 ```
 
 Locations are practice sites within an institution.
@@ -603,18 +837,23 @@ Locations are practice sites within an institution.
 Common identifiers:
 
 ```text
+
 location_id
+
 foreign_id
+
 ```
 
 `foreign_id` generally represents the corresponding record identifier in the integrated EHR.
 
-The location appointment-descriptor call is stored here or under Scheduling depending on repo preference. Conceptually, descriptors are scheduling configuration even though the route starts under `/locations`.
+The location appointment-descriptor endpoint is grouped with Locations because its route is scoped under `/locations`. Functionally, appointment descriptors are part of scheduling configuration.
 
 Typical success:
 
 ```text
+
 GET → 200
+
 ```
 
 ---
@@ -624,9 +863,13 @@ GET → 200
 ### Files
 
 ```text
+
 operatories/
+
 ├── get_operatories.py
+
 └── get_operatories_id.py
+
 ```
 
 Operatories represent rooms/chairs/resources used by the EHR schedule.
@@ -634,8 +877,11 @@ Operatories represent rooms/chairs/resources used by the EHR schedule.
 Common query scope:
 
 ```text
+
 subdomain
+
 location_id
+
 ```
 
 Useful includes can include appointment types or appointment categories where supported.
@@ -645,7 +891,9 @@ Operatories matter when a practice maps booking availability by room rather than
 Typical success:
 
 ```text
+
 GET → 200
+
 ```
 
 ---
@@ -655,19 +903,33 @@ GET → 200
 ### Files
 
 ```text
+
 patients/
+
 ├── get_patients.py
+
 ├── get_patients_id.py
+
 │
+
 ├── alerts/
+
 │   ├── get_patients_id_alerts.py
+
 │   ├── post_patients_id_alerts.py
+
 │   ├── get_patients_id_alerts_alert_id.py
+
 │   └── patch_patients_id_alerts_alert_id.py
+
 │
+
 └── documents/
+
     ├── get_patients_id_documents.py
+
     └── post_patients_id_documents.py
+
 ```
 
 ### Patient lookup
@@ -675,8 +937,11 @@ patients/
 `GET /patients` is commonly scoped with:
 
 ```text
+
 subdomain
+
 location_id
+
 ```
 
 Common filters include patient identity information, `foreign_id`, status, update timestamp, and pagination parameters.
@@ -694,9 +959,13 @@ An API-created alert can be disabled. Re-enabling behavior is endpoint-specific;
 Typical successes:
 
 ```text
+
 GET alert(s)   → 200
+
 POST alert     → 201
+
 PATCH alert    → 200
+
 ```
 
 ### Patient documents
@@ -704,34 +973,47 @@ PATCH alert    → 200
 Patient document upload is multipart:
 
 ```text
+
 POST /patients/{id}/documents
+
 ```
 
 Common inputs:
 
 ```text
+
 subdomain
+
 location_id
+
 file
+
 document_type_id (optional)
+
 ```
 
 **Important quirks:**
 
-- The uploaded filename is meaningful because it can become the filename shown in the EHR.
+- The filename supplied in the multipart request is significant because it can become the filename displayed in the EHR.
+
 - Do not manually define the multipart `content-type`; let `requests` generate it.
+
 - `GET /patients/{id}/documents` currently returns documents uploaded through NexHealth's document endpoint, not every document already present in the EHR.
 
 Typical successes:
 
 ```text
+
 GET documents  → 200
+
 POST document  → 201
+
 ```
 
 Official references:
 
 https://docs.nexhealth.com/reference/patient-alerts  
+
 https://docs.nexhealth.com/reference/patient-documents
 
 ---
@@ -741,9 +1023,13 @@ https://docs.nexhealth.com/reference/patient-documents
 ### Files
 
 ```text
+
 providers/
+
 ├── get_providers.py
+
 └── get_providers_id.py
+
 ```
 
 Providers represent clinicians/resources who can own appointments and availability.
@@ -751,35 +1037,53 @@ Providers represent clinicians/resources who can own appointments and availabili
 Common filters:
 
 ```text
+
 subdomain
+
 location_id
+
 foreign_id
+
 requestable
+
 inactive
+
 updated_since
+
 ids[]
+
 ```
 
 Useful `include[]` resources can include:
 
 ```text
+
 locations
+
 availabilities
+
 appointment_types
+
 ```
 
 Provider IDs are frequently used by:
 
 - appointments
+
 - available slots
+
 - procedures
+
 - working hours
+
 - ledger/financial filters
 
 Typical success:
 
 ```text
+
 GET → 200
+
 ```
 
 ---
@@ -789,9 +1093,13 @@ GET → 200
 ### Files
 
 ```text
+
 procedures/
+
 ├── get_procedures.py
+
 └── get_procedures_id.py
+
 ```
 
 Procedures represent scheduled/completed clinical procedures from the integrated health record system.
@@ -799,11 +1107,17 @@ Procedures represent scheduled/completed clinical procedures from the integrated
 Collection requests require meaningful filtering. Common filters include:
 
 ```text
+
 patient_id
+
 provider_id
+
 appointment_id
+
 updated_since
+
 date ranges
+
 ```
 
 Do not assume `location_id` alone is sufficient when the endpoint explicitly requires an additional filter.
@@ -811,7 +1125,9 @@ Do not assume `location_id` alone is sufficient when the endpoint explicitly req
 Typical success:
 
 ```text
+
 GET → 200
+
 ```
 
 ---
@@ -819,11 +1135,17 @@ GET → 200
 # SCHEDULING
 
 ```text
+
 scheduling/
+
 ├── appointment_types/
+
 ├── appointments/
+
 ├── available_slots/
+
 └── working_hours/
+
 ```
 
 ---
@@ -833,12 +1155,19 @@ scheduling/
 ### Files
 
 ```text
+
 appointment_types/
+
 ├── get_appointment_types.py
+
 ├── post_appointment_types.py
+
 ├── patch_appointment_types_id.py
+
 ├── delete_appointment_types_id.py
+
 └── get_appointment_types_id_appointment_descriptors.py
+
 ```
 
 Appointment Types are a NexHealth concept used to define bookable appointment categories.
@@ -848,19 +1177,29 @@ Appointment Types are a NexHealth concept used to define bookable appointment ca
 They can be scoped to:
 
 ```text
+
 Institution
+
 Location
+
 ```
 
 Relevant fields include:
 
 ```text
+
 name
+
 minutes
+
 parent_type
+
 parent_id
+
 bookable_online
+
 emr_appt_descriptor_ids
+
 ```
 
 `emr_appt_descriptor_ids` maps a NexHealth Appointment Type to appointment descriptors from the underlying EHR.
@@ -868,13 +1207,17 @@ emr_appt_descriptor_ids
 Example:
 
 ```python
+
 "emr_appt_descriptor_ids": [37714707]
+
 ```
 
 An empty list:
 
 ```python
+
 "emr_appt_descriptor_ids": []
+
 ```
 
 means no descriptors are associated.
@@ -882,7 +1225,9 @@ means no descriptors are associated.
 Do not use:
 
 ```python
+
 ["null"]
+
 ```
 
 because that is a literal string.
@@ -890,10 +1235,15 @@ because that is a literal string.
 Typical successes:
 
 ```text
+
 GET    → 200
+
 POST   → 201
+
 PATCH  → 200
+
 DELETE → 204
+
 ```
 
 Official overview:
@@ -907,12 +1257,19 @@ https://docs.nexhealth.com/reference/appointment-types
 ### Files
 
 ```text
+
 appointments/
+
 ├── get_appointments.py
+
 ├── get_appointments_id.py
+
 ├── post_appointments.py
+
 ├── patch_appointments_id.py
+
 └── get_appointments_id_appointment_descriptors.py
+
 ```
 
 Appointments connect patients, providers, times, operatories, appointment types, and EHR descriptors.
@@ -920,16 +1277,27 @@ Appointments connect patients, providers, times, operatories, appointment types,
 Collection queries commonly use:
 
 ```text
+
 subdomain
+
 location_id
+
 start
+
 end
+
 provider_ids[]
+
 patient_ids[]
+
 operatory_ids[]
+
 appointment_type_id
+
 cancelled
+
 updated_since
+
 ```
 
 Use ISO-8601 timestamps and preserve the intended timezone offset.
@@ -937,7 +1305,9 @@ Use ISO-8601 timestamps and preserve the intended timezone offset.
 Example:
 
 ```text
+
 2026-11-05T16:00:00-07:00
+
 ```
 
 ### Async writes
@@ -947,7 +1317,9 @@ A successful API request does not necessarily mean the downstream EHR write has 
 For production integrations, use insertion webhooks such as:
 
 ```text
+
 appointment_insertion
+
 ```
 
 to determine whether the EHR write ultimately completed or failed.
@@ -959,9 +1331,13 @@ to determine whether the EHR write ultimately completed or failed.
 Typical successes:
 
 ```text
+
 GET   → 200
+
 POST  → creation/accepted status defined by endpoint
+
 PATCH → 200
+
 ```
 
 Common failures include EHR-specific validation and write errors even when the HTTP request itself is valid.
@@ -973,8 +1349,11 @@ Common failures include EHR-specific validation and write errors even when the H
 ### Files
 
 ```text
+
 available_slots/
+
 └── get_available_slots.py
+
 ```
 
 `GET /available_slots` calculates bookable availability.
@@ -982,43 +1361,61 @@ available_slots/
 Common required inputs include:
 
 ```text
+
 subdomain
+
 start_date
+
 days
+
 lids[]
+
 ```
 
 and either:
 
 ```text
+
 pids[]
+
 ```
 
 or:
 
 ```text
+
 appointment_type_id
+
 ```
 
 Useful options include:
 
 ```text
+
 working_hour_source
+
 working_hour_label_id
+
 slot_length
+
 slot_interval
+
 overlapping_operatory_slots
+
 appointments_per_timeslot
+
 ```
 
-**Core behavior:** available slots are calculated *inside working hours*. If a provider has no applicable working hours, the API can return no slots even when the EHR calendar looks open.
+**Core behavior:** available slots are calculated **inside working hours**. If a provider has no applicable working hours, the API can return no slots even when the EHR calendar looks open.
 
 When `appointment_type_id` is supplied, NexHealth can use the appointment type's duration and provider/working-hour mappings.
 
 Typical success:
 
 ```text
+
 GET → 200
+
 ```
 
 Official reference:
@@ -1032,13 +1429,21 @@ https://docs.nexhealth.com/reference/getavailableslots
 ### Files
 
 ```text
+
 working_hours/
+
 ├── get_working_hours.py
+
 ├── get_working_hours_id.py
+
 ├── post_working_hours.py
+
 ├── patch_working_hours_id.py
+
 ├── delete_working_hours_id.py
+
 └── get_working_hour_labels.py
+
 ```
 
 Working hours define the boundaries inside which providers can be booked.
@@ -1046,8 +1451,11 @@ Working hours define the boundaries inside which providers can be booked.
 Two sources exist:
 
 ```text
+
 manual
+
 synced
+
 ```
 
 ### Manual working hours
@@ -1057,9 +1465,13 @@ Created/managed through NexHealth.
 Editable through:
 
 ```text
+
 POST /working_hours
+
 PATCH /working_hours/{id}
+
 DELETE /working_hours/{id}
+
 ```
 
 ### Synced working hours
@@ -1071,15 +1483,25 @@ Read from supported EHR scheduling configuration.
 Relevant fields can include:
 
 ```text
+
 provider_id
+
 operatory_id
+
 begin_time
+
 end_time
+
 days
+
 specific_date
+
 custom_recurrence
+
 appointment_type_ids
+
 active
+
 ```
 
 For creation/update, follow the endpoint rule around mutually exclusive recurrence fields. Do not blindly send `days`, `specific_date`, and `custom_recurrence` together.
@@ -1089,10 +1511,15 @@ For creation/update, follow the endpoint rule around mutually exclusive recurren
 Typical successes:
 
 ```text
+
 GET    → 200
+
 POST   → creation success
+
 PATCH  → 200
+
 DELETE → 204
+
 ```
 
 ### Working hour labels
@@ -1108,17 +1535,29 @@ https://docs.nexhealth.com/reference/working-hours
 # PRACTICE FINANCIALS
 
 ```text
+
 practice_financials/
+
 ├── adjustments/
+
 ├── adjustment_types/
+
 ├── fee_schedules/
+
 ├── payment_plans/
+
 ├── payment_types/
+
 ├── balances/
+
 ├── charges/
+
 ├── claims/
+
 ├── insurance/
+
 └── payments/
+
 ```
 
 > **Financial API note:** NexHealth currently documents that financial data is read from the EHR on request and may require enablement for a production API key. Sandbox locations generally have financial reads enabled. Many financial endpoints currently document support for Dentrix, Eaglesoft, and Open Dental; confirm support on each endpoint before designing around another EHR.
@@ -1130,10 +1569,15 @@ practice_financials/
 ### Files
 
 ```text
+
 adjustments/
+
 ├── get_adjustments.py
+
 ├── get_adjustments_id.py
+
 └── post_adjustments.py
+
 ```
 
 Adjustments change a patient's ledger balance.
@@ -1141,12 +1585,19 @@ Adjustments change a patient's ledger balance.
 Collection reads require `subdomain`, `location_id`, and at least one meaningful filter such as:
 
 ```text
+
 patient_id
+
 provider_id
+
 guarantor_id
+
 claim_id
+
 charge_id
+
 updated_since
+
 ```
 
 Adjustment writes use a caller-defined `transaction_id`.
@@ -1158,8 +1609,11 @@ Debit/credit direction matters. Use Adjustment Types to understand how a specifi
 Typical successes:
 
 ```text
+
 GET  → 200
+
 POST → commonly asynchronous / accepted
+
 ```
 
 For async writes, use the `adjustment_insertion` webhook where appropriate.
@@ -1171,9 +1625,13 @@ For async writes, use the `adjustment_insertion` webhook where appropriate.
 ### Files
 
 ```text
+
 adjustment_types/
+
 ├── get_adjustment_types.py
+
 └── get_adjustment_types_id.py
+
 ```
 
 Adjustment types describe why a ledger adjustment exists.
@@ -1181,22 +1639,31 @@ Adjustment types describe why a ledger adjustment exists.
 Actions can include:
 
 ```text
+
 credit
+
 debit
+
 unknown
+
 ```
 
 Conceptually:
 
 - `debit` increases what the patient owes.
+
 - `credit` decreases what the patient owes.
+
 - `unknown` indicates the EHR does not provide a clear direction.
 
 Collection requests use:
 
 ```text
+
 subdomain
+
 location_id
+
 ```
 
 and can filter `active` / `updated_since`.
@@ -1204,7 +1671,9 @@ and can filter `active` / `updated_since`.
 Typical success:
 
 ```text
+
 GET → 200
+
 ```
 
 Official overview:
@@ -1218,10 +1687,15 @@ https://docs.nexhealth.com/reference/adjustment-types
 ### Files
 
 ```text
+
 fee_schedules/
+
 ├── get_fee_schedules.py
+
 ├── get_fee_schedules_id.py
+
 └── get_fee_schedule_procedures.py
+
 ```
 
 Fee schedules map procedures to prices.
@@ -1229,14 +1703,19 @@ Fee schedules map procedures to prices.
 Common use cases:
 
 - estimate procedure cost
+
 - compare pricing between insurance/cash schedules
+
 - support treatment-cost calculations
 
 `GET /fee_schedule_procedures` requires `subdomain`, `location_id`, and an additional selector such as:
 
 ```text
+
 fee_schedule_id
+
 updated_since
+
 ```
 
 A single fee schedule can optionally include its procedure fees where supported.
@@ -1244,7 +1723,9 @@ A single fee schedule can optionally include its procedure fees where supported.
 Typical success:
 
 ```text
+
 GET → 200
+
 ```
 
 Official overview:
@@ -1258,24 +1739,35 @@ https://docs.nexhealth.com/reference/fee-schedules
 ### Files
 
 ```text
+
 payment_plans/
+
 ├── get_payment_plans.py
+
 └── get_payment_plans_id.py
+
 ```
 
 Collection requests commonly require:
 
 ```text
+
 subdomain
+
 location_id
+
 ```
 
 plus at least one filter such as:
 
 ```text
+
 patient_id
+
 guarantor_id
+
 updated_since
+
 ```
 
 **Quirk:** `GET /payment_plans/{id}` currently does not document `subdomain` as a query parameter. Follow the endpoint docs rather than forcing every request into the same pattern.
@@ -1283,14 +1775,19 @@ updated_since
 Useful includes for a single payment plan:
 
 ```text
+
 patient
+
 guarantor
+
 ```
 
 Typical success:
 
 ```text
+
 GET → 200
+
 ```
 
 ---
@@ -1300,9 +1797,13 @@ GET → 200
 ### Files
 
 ```text
+
 payment_types/
+
 ├── get_payment_types.py
+
 └── get_payment_types_id.py
+
 ```
 
 Payment types represent categories such as cash, card, check, or other EHR-configured payment methods.
@@ -1310,15 +1811,21 @@ Payment types represent categories such as cash, card, check, or other EHR-confi
 Collection requests use:
 
 ```text
+
 subdomain
+
 location_id
+
 ```
 
 Common filters:
 
 ```text
+
 active
+
 updated_since
+
 ```
 
 Payment types are important when posting a payment because the EHR needs to know what category/type to assign the transaction.
@@ -1326,7 +1833,9 @@ Payment types are important when posting a payment because the EHR needs to know
 Typical success:
 
 ```text
+
 GET → 200
+
 ```
 
 Official overview:
@@ -1338,13 +1847,21 @@ https://docs.nexhealth.com/reference/payment-types
 ## Balances
 
 ```text
+
 balances/
+
 ├── guarantor/
+
 │   ├── get_guarantor_balances.py
+
 │   └── get_guarantor_balances_id.py
+
 └── insurance/
+
     ├── get_insurance_balances.py
+
     └── get_insurance_balances_id.py
+
 ```
 
 ### Guarantor balances
@@ -1352,8 +1869,11 @@ balances/
 Collection requests require location scoping plus a selector such as:
 
 ```text
+
 guarantor_id
+
 updated_since
+
 ```
 
 `show_zero_balances=true` can be useful because zero balances may otherwise be excluded.
@@ -1367,16 +1887,23 @@ Insurance balances represent expected/billed insurance amounts, including aging 
 Collection requests require:
 
 ```text
+
 subdomain
+
 location_id
+
 ```
 
 plus at least one of:
 
 ```text
+
 patient_id
+
 guarantor_id
+
 updated_since
+
 ```
 
 `location_id` by itself does not satisfy the additional-filter requirement.
@@ -1386,7 +1913,9 @@ The single insurance-balance endpoint **does** require `subdomain`.
 Typical success:
 
 ```text
+
 GET → 200
+
 ```
 
 ---
@@ -1396,9 +1925,13 @@ GET → 200
 ### Files
 
 ```text
+
 charges/
+
 ├── get_charges.py
+
 └── get_charges_id.py
+
 ```
 
 Charges are ledger amounts associated with treatment/procedures.
@@ -1406,11 +1939,17 @@ Charges are ledger amounts associated with treatment/procedures.
 Collection reads require `subdomain`, `location_id`, and a meaningful filter such as:
 
 ```text
+
 patient_id
+
 provider_id
+
 procedure_id
+
 guarantor_id
+
 updated_since
+
 ```
 
 Useful related resources can include claim payouts or totals, depending on the endpoint.
@@ -1418,7 +1957,9 @@ Useful related resources can include claim payouts or totals, depending on the e
 Typical success:
 
 ```text
+
 GET → 200
+
 ```
 
 ---
@@ -1428,29 +1969,45 @@ GET → 200
 ### Files
 
 ```text
+
 claims/
+
 ├── get_claims.py
+
 └── get_claims_id.py
+
 ```
 
 Claim collection requests require `subdomain`, `location_id`, and at least one filter such as:
 
 ```text
+
 patient_id
+
 guarantor_id
+
 provider_id
+
 updated_since
+
 date_of_service
+
 ```
 
 Single claim responses can include:
 
 ```text
+
 patient
+
 provider
+
 guarantor
+
 charges
+
 charge_payouts
+
 ```
 
 **Known API quirk:** NexHealth currently documents that `GET /claims/{id}` may return **HTTP 500 instead of 404** when the claim does not exist or belongs to an inaccessible location. Do not automatically interpret every 500 from that route as a generic infrastructure outage.
@@ -1458,7 +2015,9 @@ charge_payouts
 Typical success:
 
 ```text
+
 GET → 200
+
 ```
 
 ---
@@ -1468,11 +2027,17 @@ GET → 200
 ### Files
 
 ```text
+
 insurance/
+
 ├── get_insurance_plans.py
+
 ├── get_insurance_plans_id.py
+
 ├── get_insurance_coverages.py
+
 └── get_insurance_coverages_id.py
+
 ```
 
 ### Insurance plans
@@ -1482,10 +2047,15 @@ Plans describe payer/group-plan configuration in the EHR.
 Useful filters include:
 
 ```text
+
 payer_id
+
 group_num
+
 updated_since
+
 include_deleted
+
 ```
 
 Single plans may allow includes such as related coverages/subscribers/fee schedules depending on the current endpoint contract.
@@ -1497,20 +2067,29 @@ Coverages connect patients/subscribers with insurance plans.
 Useful filters include:
 
 ```text
+
 patient_id
+
 active
+
 updated_since
+
 ```
 
 Be careful when dynamically adding optional integer filters to a `params` dictionary. Use explicit typing:
 
 ```python
+
 params: dict[str, str | int | bool] = {
+
     "subdomain": subdomain
+
 }
 
 if patient_id is not None:
+
     params["patient_id"] = int(patient_id)
+
 ```
 
 That avoids the Pylance `int is not assignable to str` warning.
@@ -1518,7 +2097,9 @@ That avoids the Pylance `int is not assignable to str` warning.
 Typical success:
 
 ```text
+
 GET → 200
+
 ```
 
 ---
@@ -1528,10 +2109,15 @@ GET → 200
 ### Files
 
 ```text
+
 payments/
+
 ├── get_payments.py
+
 ├── get_payments_id.py
+
 └── post_payments.py
+
 ```
 
 Payments reduce a patient's balance.
@@ -1539,14 +2125,19 @@ Payments reduce a patient's balance.
 **Important sign convention:**
 
 ```text
+
 Payment → negative amount
+
 Refund  → positive amount
+
 ```
 
 Example:
 
 ```python
+
 "amount": -125.00
+
 ```
 
 for a $125 payment.
@@ -1554,13 +2145,21 @@ for a $125 payment.
 Collection reads require `subdomain`, `location_id`, and at least one filter such as:
 
 ```text
+
 patient_id
+
 provider_id
+
 guarantor_id
+
 charge_id
+
 claim_id
+
 transaction_id
+
 updated_since
+
 ```
 
 Payment writes use a `payment_type_id` and caller-defined `transaction_id`.
@@ -1570,7 +2169,9 @@ Payments can be allocated using splits where supported.
 Writes can be asynchronous. Use:
 
 ```text
+
 payment_insertion
+
 ```
 
 webhooks to determine whether the payment actually reached the EHR.
@@ -1581,16 +2182,22 @@ https://docs.nexhealth.com/reference/payments
 
 ---
 
-# ADDITIONAL IMPLEMENTED RESOURCES
+# ADDITIONAL API RESOURCES
 
-These are part of the test suite even though they were not visible in the supplied screenshot section of the reference navigation.
+The repository also includes reference implementations for the following NexHealth API resources:
 
 ```text
+
 clinical/
+
 documents/
+
 staff/
+
 sync/
+
 webhooks/
+
 ```
 
 ---
@@ -1600,9 +2207,13 @@ webhooks/
 ### Files
 
 ```text
+
 clinical/
+
 └── clinical_notes/
+
     └── get_clinical_notes.py
+
 ```
 
 Clinical notes contain patient visit documentation.
@@ -1610,11 +2221,17 @@ Clinical notes contain patient visit documentation.
 Collection calls require `subdomain`, `location_id`, and at least one meaningful filter such as:
 
 ```text
+
 patient_id
+
 procedure_id
+
 entered_before
+
 entered_after
+
 updated_since
+
 ```
 
 Procedure associations can vary by EHR/note type.
@@ -1624,7 +2241,9 @@ Never commit real clinical-note response bodies to Git.
 Typical success:
 
 ```text
+
 GET → 200
+
 ```
 
 Official overview:
@@ -1638,10 +2257,15 @@ https://docs.nexhealth.com/reference/clinical-notes
 ### Files
 
 ```text
+
 documents/
+
 └── document_types/
+
     ├── get_document_types.py
+
     └── get_document_types_id.py
+
 ```
 
 Document types represent EHR document categories such as forms, treatment plans, imaging, insurance documents, etc.
@@ -1649,9 +2273,13 @@ Document types represent EHR document categories such as forms, treatment plans,
 Collection requests use:
 
 ```text
+
 subdomain
+
 location_id
+
 active
+
 ```
 
 `active` defaults to active-only behavior.
@@ -1661,7 +2289,9 @@ Document types are useful when uploading a patient document so the file is place
 Typical success:
 
 ```text
+
 GET → 200
+
 ```
 
 Official overview:
@@ -1675,8 +2305,11 @@ https://docs.nexhealth.com/reference/document-types
 ### Files
 
 ```text
+
 staff/
+
 └── get_nex_staff.py
+
 ```
 
 A Nex Staff record represents a user account in the NexHealth web application.
@@ -1684,11 +2317,17 @@ A Nex Staff record represents a user account in the NexHealth web application.
 Common parameters:
 
 ```text
+
 subdomain
+
 page
+
 per_page
+
 inactive
+
 location_ids[]
+
 ```
 
 This endpoint currently uses page-number pagination rather than the cursor pattern used by many other collection endpoints.
@@ -1696,13 +2335,17 @@ This endpoint currently uses page-number pagination rather than the cursor patte
 Current documented max:
 
 ```text
+
 per_page = 300
+
 ```
 
 Typical success:
 
 ```text
+
 GET → 200
+
 ```
 
 ---
@@ -1712,8 +2355,11 @@ GET → 200
 ### Files
 
 ```text
+
 sync/
+
 └── get_sync_status.py
+
 ```
 
 Sync status indicates whether NexHealth's integration with the EHR is healthy.
@@ -1721,31 +2367,45 @@ Sync status indicates whether NexHealth's integration with the EHR is healthy.
 Each sync exposes:
 
 ```text
+
 read_status
+
 read_status_at
+
 write_status
+
 write_status_at
+
 ```
 
 Statuses are:
 
 ```text
+
 green
+
 red
+
 ```
 
 Interpret them separately:
 
 - Read health = NexHealth's ability to read data from the EHR.
+
 - Write health = NexHealth's ability to insert/update data in the EHR.
 
 Useful filters:
 
 ```text
+
 subdomain
+
 read_status
+
 write_status
+
 location_ids[]
+
 ```
 
 `*_status_at` timestamps are useful when assessing how recently the corresponding sync service checked in successfully.
@@ -1753,7 +2413,9 @@ location_ids[]
 Typical success:
 
 ```text
+
 GET → 200
+
 ```
 
 Official reference:
@@ -1765,42 +2427,69 @@ https://docs.nexhealth.com/reference/getsyncstatus
 # WEBHOOKS
 
 ```text
+
 webhooks/
+
 ├── endpoints/
+
 │   ├── get_webhook_endpoints.py
+
 │   ├── post_webhook_endpoints.py
+
 │   ├── patch_webhook_endpoints_id.py
+
 │   └── delete_webhook_endpoints_id.py
+
 │
+
 └── subscriptions/
+
     ├── get_webhook_endpoint_subscriptions.py
+
     ├── post_webhook_endpoint_subscription.py
+
     ├── patch_webhook_endpoint_subscription.py
+
     └── delete_webhook_endpoint_subscription.py
+
 ```
 
-Webhooks let NexHealth notify your application when something happens instead of requiring your application to continuously poll.
+Webhooks allow NexHealth to notify a client application when an event occurs instead of requiring continuous polling.
 
 Conceptually:
 
 ```text
+
 Something changes
+
       ↓
+
 NexHealth
+
       ↓
+
 HTTP POST
+
       ↓
-Your webhook URL
+
+Registered webhook URL
+
 ```
 
 This is especially useful for:
 
 - appointment changes
+
 - patient changes
+
 - payment changes
+
 - financial-data changes
+
 - document insertion results
+
 - asynchronous EHR write results
+
 - sync recovery signals
 
 ---
@@ -1812,16 +2501,23 @@ A webhook endpoint defines **where** NexHealth sends webhook events.
 Example:
 
 ```text
+
 https://yourapp.example.com/nexhealth/webhooks
+
 ```
 
 Relevant calls:
 
 ```text
+
 GET    /webhook_endpoints
+
 POST   /webhook_endpoints
+
 PATCH  /webhook_endpoints/{id}
+
 DELETE /webhook_endpoints/{id}
+
 ```
 
 Production webhook URLs should use HTTPS.
@@ -1831,10 +2527,15 @@ The returned webhook endpoint configuration can contain a secret used to validat
 Typical successes:
 
 ```text
+
 GET    → 200
+
 POST   → 201
+
 PATCH  → 200
+
 DELETE → 204
+
 ```
 
 ---
@@ -1846,28 +2547,43 @@ A subscription defines **what** NexHealth sends to an endpoint.
 Conceptually:
 
 ```text
+
 Webhook Endpoint
+
       +
+
 Resource Type
+
       +
+
 Event
+
 ```
 
 Example:
 
 ```text
+
 Endpoint:      123456
+
 Resource Type: Appointment
+
 Event:         appointment_updated
+
 ```
 
 Relevant calls:
 
 ```text
+
 GET    /webhook_endpoints/{id}/webhook_subscriptions
+
 POST   /webhook_endpoints/{id}/webhook_subscriptions
+
 PATCH  /webhook_endpoints/{id}/webhook_subscriptions/{subscription_id}
+
 DELETE /webhook_endpoints/{id}/webhook_subscriptions/{subscription_id}
+
 ```
 
 `resource_type` and `event` are case-sensitive enums. Use the exact documented values.
@@ -1875,19 +2591,29 @@ DELETE /webhook_endpoints/{id}/webhook_subscriptions/{subscription_id}
 Example:
 
 ```json
+
 {
+
     "resource_type": "Appointment",
+
     "event": "appointment_updated",
+
     "active": true
+
 }
+
 ```
 
 Do not use:
 
 ```json
+
 {
+
     "resource_type": "appointment"
+
 }
+
 ```
 
 if the enum expects `Appointment`.
@@ -1899,17 +2625,25 @@ Insertion events are particularly valuable because NexHealth writes to EHRs asyn
 Examples include:
 
 ```text
+
 appointment_insertion
+
 adjustment_insertion
+
 payment_insertion
+
 document_insertion
+
 ```
 
 These can report whether an EHR insertion ultimately:
 
 ```text
+
 complete
+
 failed
+
 ```
 
 ### Sync status webhook quirk
@@ -1917,27 +2651,37 @@ failed
 The current webhook documentation says:
 
 ```text
+
 sync_status_read_change
+
 sync_status_write_change
+
 ```
 
 fire when status recovers from:
 
 ```text
+
 red → green
+
 ```
 
 They currently do **not** fire for:
 
 ```text
+
 green → red
+
 ```
 
 For outage/degradation monitoring, inspect:
 
 ```text
+
 read_status_at
+
 write_status_at
+
 ```
 
 from the sync status endpoint as well.
@@ -1949,7 +2693,9 @@ Webhook subscriptions are pinned to the API version used when the subscription i
 If created with:
 
 ```http
+
 Nex-Api-Version: v3.0.0
+
 ```
 
 the subscription payload contract follows that API version.
@@ -1957,10 +2703,15 @@ the subscription payload contract follows that API version.
 Typical successes:
 
 ```text
+
 GET    → 200
+
 POST   → 201
+
 PATCH  → 200
+
 DELETE → 204
+
 ```
 
 Official reference:
@@ -1971,50 +2722,78 @@ https://docs.nexhealth.com/reference/webhook-subscriptions
 
 # Troubleshooting checklist
 
-Before assuming NexHealth is broken:
+When an API request returns an unexpected result, verify:
 
 ```text
+
 [ ] Is the correct .env loaded?
+
 [ ] Is the credential present?
+
 [ ] Is the bearer token current?
+
 [ ] Is Nex-Api-Version set correctly?
+
 [ ] Is subdomain correct?
+
 [ ] Is location_id correct?
+
 [ ] Does the ID belong to this institution/location?
+
 [ ] Is the parameter in the correct place?
+
     - path
+
     - params
+
     - JSON body
+
     - multipart form
+
 [ ] Are numeric env vars converted to int where needed?
+
 [ ] Does this collection endpoint require an additional filter?
+
 [ ] Does the EHR support this resource/write?
+
 [ ] Is the working hour manual vs synced?
+
 [ ] Is the API response warning in error even though code=true?
+
 [ ] Is this an async write that requires an insertion webhook?
+
 [ ] Is the API returning 429?
+
 [ ] Is sync status read/write green?
+
 ```
 
-When debugging, always print:
+During local debugging, output at least the response status, request URL, and response body:
 
 ```python
+
 console.print(f"Status Code: {response.status_code}")
+
 console.print(f"Request URL: {response.url}")
+
 console.print_json(data=response.json())
+
 ```
 
 ---
 
 # Disclaimer
 
-This repository is an independent developer/test project.
+This repository is an independent developer reference project.
 
 It is:
 
 - not an official NexHealth SDK
+
 - not endorsed by NexHealth
+
 - not a substitute for current NexHealth documentation
+
 - not intended to contain production credentials or PHI
 
 NexHealth API behavior, supported EHRs, request parameters, API versions, and endpoint availability can change. Validate critical production behavior against the current official documentation.
