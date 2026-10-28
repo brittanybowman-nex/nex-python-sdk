@@ -29,8 +29,9 @@ url = "https://nexhealth.info/appointments"
 params = {
     "subdomain": subdomain,
     "location_id": location_id,
-    "start": "2026-10-12T20:40:00Z",
-    "end": "2026-10-12T20:59:00Z"
+    "start": "2026-10-28T00:00:00Z",
+    "end": "2026-10-28T18:59:00Z",
+    "per_page": 1000
 }
 
 headers = {

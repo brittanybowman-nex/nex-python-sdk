@@ -26,7 +26,9 @@ url = "https://nexhealth.info/patients"
 
 params = {
     "subdomain": subdomain,
-    "location_id": location_id
+    "location_id": location_id,
+    "per_page": 1000,
+    "start_cursor": "WzE4MTk5NzE5OV0"
 }
 
 headers = {
